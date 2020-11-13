@@ -586,6 +586,7 @@ function Janus(gatewayCallbacks) {
 			}
 			return;
 		}
+		console.log(" receive janus Event " + json["janus"] )
 		if(json["janus"] === "keepalive") {
 			// Nothing happened
 			Janus.vdebug("Got a keepalive on session " + sessionId);
@@ -1287,6 +1288,7 @@ function Janus(gatewayCallbacks) {
 		var jsep = callbacks.jsep;
 		var transaction = Janus.randomString(12);
 		var request = { "janus": "message", "body": message, "transaction": transaction };
+		Janus.debug(request)
 		if(pluginHandle.token)
 			request["token"] = pluginHandle.token;
 		if(apisecret)
@@ -1739,6 +1741,7 @@ function Janus(gatewayCallbacks) {
 					config.iceDone = true;
 					if(config.trickle === true) {
 						// Notify end of candidates
+						Janus.log("Send Trickle.  Notify end of candidates")
 						sendTrickleCandidate(handleId, {"completed": true});
 					} else {
 						// No trickle, time to send the complete SDP (including all candidates)
@@ -1754,13 +1757,15 @@ function Janus(gatewayCallbacks) {
 					};
 					if(config.trickle === true) {
 						// Send candidate
+						Janus.log("Send Trickle")
+					
 						sendTrickleCandidate(handleId, candidate);
 					}
 				}
 			};
 			config.pc.ontrack = function(event) {
 				Janus.log("Handling Remote Track");
-				Janus.debug(event);
+				Janus.log(event);
 				if(!event.streams)
 					return;
 				config.remoteStream = event.streams[0];

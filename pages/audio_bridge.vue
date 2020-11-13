@@ -2,14 +2,6 @@
   <div class="container">
     rendering
     <video id="video" autoPlay playsInline />
-    <audio
-      class="rounded centered"
-      id="audio"
-      width="100%"
-      height="100%"
-      autoplay
-      playsinline
-    />
   </div>
 </template>
 
@@ -21,7 +13,7 @@ const opaqueId = "streamingtest-" + Janus.randomString(12);
 const roomId = "test";
 const myId = Janus.randomString(12);
 const users = {};
-const create = (userId) => {
+const create = (userId, isOwner) => {
   let streaming = null;
   users[userId] = false;
   console.log("start connect User " + userId);
@@ -32,11 +24,13 @@ const create = (userId) => {
         server: server,
         success: function () {
           janus.attach({
-            plugin: "janus.plugin.sfu",
+            plugin: "janus.plugin.audiobridge",
             success: function (pluginHandle) {
               console.log("attached plugin");
               streaming = pluginHandle;
-
+              streaming.send({
+                message: { request: "create", room: roomId },
+              });
               console.log("create offer");
               streaming.createOffer({
                 media: {
@@ -48,16 +42,7 @@ const create = (userId) => {
                   console.log("send offer");
                   console.log(jsep);
                   var body = {};
-                  streaming.send({
-                    message: body,
-                    jsep: jsep,
-                    success: function (jsep) {
-                      console.log("success send offer");
-                    },
-                    error: function (error) {
-                      console.log("WebRTC error... " + JSON.stringify(error));
-                    },
-                  });
+                  streaming.send({ message: body, jsep: jsep });
                 },
                 error: function (error) {
                   console.log("WebRTC error... " + JSON.stringify(error));
@@ -148,32 +133,6 @@ const create = (userId) => {
               console.log("on webrtc user my: " + (userId == myId));
 
               if (webrtcup) {
-                users[userId] = true;
-                let subscribe = {};
-                if (userId == myId) {
-                  subscribe = {
-                    notifications: true,
-                    data: true,
-                  };
-                } else {
-                  subscribe = {
-                    media: userId,
-                  };
-                }
-                streaming.send({
-                  message: {
-                    kind: "join",
-                    room_id: roomId,
-                    user_id: userId,
-                    subscribe: subscribe,
-                  },
-                  success: function (jsep) {
-                    console.log("success join");
-                  },
-                  error: function (error) {
-                    console.log("WebRTC error... " + JSON.stringify(error));
-                  },
-                });
               }
             },
             onlocalstream: function (stream) {
@@ -182,17 +141,6 @@ const create = (userId) => {
             onremotestream: function (stream) {
               console.log("on remote stream");
               console.log(stream);
-              var tracks = stream.getAudioTracks();
-              console.log("has audio tracks " + tracks.length);
-              if (
-                tracks === null ||
-                tracks === undefined ||
-                tracks.length === 0
-              )
-                return;
-
-              console.log("set stream");
-              Janus.attachMediaStream(document.getElementById("audio"), stream);
             },
           });
         },
@@ -210,7 +158,7 @@ export default {
     Logo,
   },
   mounted() {
-    create(myId);
+    create(myId, true);
   },
   methods: {},
 };
