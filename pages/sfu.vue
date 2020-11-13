@@ -1,7 +1,6 @@
 <template>
   <div class="container">
-    rendering
-    <video id="video" autoPlay playsInline />
+    <button @click="startSession">Start</button>
     <audio
       class="rounded centered"
       id="audio"
@@ -190,6 +189,7 @@ const create = (userId) => {
               if (
                 tracks === null ||
                 tracks === undefined ||
+                myId == userId ||
                 tracks.length === 0
               )
                 return;
@@ -212,10 +212,12 @@ export default {
   components: {
     Logo,
   },
-  mounted() {
-    create(myId);
+  mounted() {},
+  methods: {
+    startSession() {
+      create(myId);
+    },
   },
-  methods: {},
 };
 </script>
 
