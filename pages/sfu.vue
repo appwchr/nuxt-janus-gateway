@@ -16,7 +16,8 @@
 <script>
 import Logo from "~/components/Logo.vue";
 import Janus from "~/components/janus";
-const server = "ws://192.168.1.210:8188";
+
+const server = "wss://janus-001.vobby.net:8989";
 const opaqueId = "streamingtest-" + Janus.randomString(12);
 const roomId = "test";
 const myId = Janus.randomString(12);
@@ -30,6 +31,7 @@ const create = (userId) => {
     callback: function () {
       let janus = new Janus({
         server: server,
+        token: "1605358995,janus,janus.plugin.sfu:f+F+JcX2ByYhTO34z8poODDgv4c=",
         success: function () {
           janus.attach({
             plugin: "janus.plugin.sfu",
@@ -40,7 +42,8 @@ const create = (userId) => {
               console.log("create offer");
               streaming.createOffer({
                 media: {
-                  audio: true,
+                  audioSend: myId == userId,
+                  audioRecv: myId != userId,
                   video: false,
                   data: myId == userId,
                 },

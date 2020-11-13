@@ -478,6 +478,7 @@ function Janus(gatewayCallbacks) {
 	var token = null;
 	if(gatewayCallbacks.token !== undefined && gatewayCallbacks.token !== null)
 		token = gatewayCallbacks.token;
+		Janus.debug(token)
 	// API secret to use (only if the shared API secret is enabled)
 	var apisecret = null;
 	if(gatewayCallbacks.apisecret !== undefined && gatewayCallbacks.apisecret !== null)
