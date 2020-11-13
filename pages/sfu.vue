@@ -12,9 +12,10 @@ const server = "ws://192.168.1.210:8188";
 const opaqueId = "streamingtest-" + Janus.randomString(12);
 const roomId = "test";
 const myId = Janus.randomString(12);
-
+const users = {};
 const create = (userId) => {
   let streaming = null;
+  users[userId] = false;
   Janus.init({
     debug: "all",
     callback: function () {
@@ -26,8 +27,14 @@ const create = (userId) => {
             success: function (pluginHandle) {
               console.log("success plugin");
               streaming = pluginHandle;
+
+              console.log("create offer");
               streaming.createOffer({
-                media: { audio: true, video: false, data: myId == userId },
+                media: {
+                  audio: true,
+                  video: false,
+                  data: myId == userId,
+                },
                 success: function (jsep) {
                   console.log("success offer");
                   console.log(jsep);
@@ -60,12 +67,37 @@ const create = (userId) => {
                     break;
                 }
               } else if (
-                jsep !== undefined &&
-                jsep !== null &&
-                jsep.type !== null
+                msg !== undefined &&
+                msg !== null &&
+                msg.response !== undefined &&
+                msg.response.users !== undefined
               ) {
+                for (let user of msg.response.users[roomId]) {
+                  if (!users[user]) {
+                    create(user);
+                  }
+                }
+              }
+              if (jsep !== undefined && jsep !== null && jsep.type !== null) {
                 console.log("receive jsep " + jsep.type);
                 switch (jsep.type) {
+                  case "offer":
+                    console.log("create answer");
+                    streaming.createAnswer({
+                      jsep: jsep,
+                      media: {
+                        audio: true,
+                        video: false,
+                        data: false,
+                      },
+                      success: function (jsep) {
+                        console.log("success answer");
+                      },
+                      error: function (error) {
+                        console.log("WebRTC error... " + JSON.stringify(error));
+                      },
+                    });
+                    break;
                   case "answer":
                     console.log("handle answer");
                     streaming.handleRemoteJsep({
@@ -91,6 +123,7 @@ const create = (userId) => {
               console.log("on webrtc user my: " + (userId == myId));
 
               if (webrtcup) {
+                users[userId] = true;
                 let subscribe = {};
                 if (userId == myId) {
                   subscribe = {
@@ -114,21 +147,8 @@ const create = (userId) => {
               console.log("on local stream");
             },
             onremotestream: function (stream) {
-              var addButtons = false;
-              addButtons = true;
               console.log("on remote stream");
-              var videoTracks = stream.getVideoTracks();
-              if (
-                videoTracks === null ||
-                videoTracks === undefined ||
-                videoTracks.length === 0
-              )
-                return;
-
-              let video = document.getElementById("video");
-              video.srcObject = stream; // webinar or p2p
-              console.log("rendering", stream);
-              Janus.attachMediaStream(video, stream);
+              console.log(stream);
             },
           });
         },
