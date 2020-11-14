@@ -2,17 +2,44 @@ import Janus from "~/components/janus";
 
 const users = {};
 
-class JanusPluginSFU {
+class JanusPluginAudioBridge {
   constructor(myUserId, server, token) {
     this.myUserId = myUserId;
     this.server = server;
     this.token = token;
     this.users = {};
   }
-  createSession(roomId, userId) {
-    let streaming = null;
-    this.users[userId] = false;
-    console.log("start connect User " + userId);
+  createRoom(roomId) {
+    this.streaming.send({
+      message: {
+        request: "create",
+        room: roomId
+      },
+      success: jsep => {
+        console.log("success create");
+      },
+      error: error => {
+        console.log("WebRTC error... " + JSON.stringify(error));
+      }
+    });
+  }
+  joinRoom(roomId) {
+    this.streaming.send({
+      message: {
+        request: "join",
+        room: roomId,
+        display: this.myUserId
+      },
+      success: jsep => {
+        console.log("success join");
+      },
+      error: error => {
+        console.log("WebRTC error... " + JSON.stringify(error));
+      }
+    });
+  }
+  createSession() {
+    this.streaming = null;
     Janus.init({
       debug: "all",
       callback: () => {
@@ -21,37 +48,10 @@ class JanusPluginSFU {
           token: this.token,
           success: () => {
             janus.attach({
-              plugin: "janus.plugin.sfu",
+              plugin: "janus.plugin.audiobridge",
               success: pluginHandle => {
                 console.log("attached plugin");
-                streaming = pluginHandle;
-                console.log("create offer");
-                streaming.createOffer({
-                  media: {
-                    audioSend: this.myUserId == userId,
-                    audioRecv: this.myUserId != userId,
-                    video: false,
-                    data: this.myUserId == userId
-                  },
-                  success: jsep => {
-                    console.log("send offer");
-                    console.log(jsep);
-                    var body = {};
-                    streaming.send({
-                      message: body,
-                      jsep: jsep,
-                      success: jsep => {
-                        console.log("success send offer");
-                      },
-                      error: error => {
-                        console.log("WebRTC error... " + JSON.stringify(error));
-                      }
-                    });
-                  },
-                  error: error => {
-                    console.log("WebRTC error... " + JSON.stringify(error));
-                  }
-                });
+                this.streaming = pluginHandle;
               },
               error: error => {
                 console.log("Error attaching plugin... " + error);
@@ -68,14 +68,40 @@ class JanusPluginSFU {
                 console.log("receive message");
                 console.log(msg);
                 console.log(jsep);
-                if (msg !== undefined && msg.event !== undefined) {
-                  console.log("receive event " + msg.event);
-                  switch (msg.event) {
-                    case "join":
-                      this.createSession(roomId, msg.user_id);
+                if (msg !== undefined && msg.audiobridge !== undefined) {
+                  console.log("receive event " + msg.audiobridge);
+                  switch (msg.audiobridge) {
+                    case "joined":
+                      this.streaming.createOffer({
+                        media: {
+                          audio: true,
+                          video: false,
+                          data: true
+                        },
+                        success: jsep => {
+                          console.log("send offer");
+                          console.log(jsep);
+                          this.streaming.send({
+                            message: { request: "configure", muted: false },
+                            jsep: jsep,
+                            success: jsep => {
+                              console.log("success send offer");
+                            },
+                            error: error => {
+                              console.log(
+                                "WebRTC error... " + JSON.stringify(error)
+                              );
+                            }
+                          });
+                        },
+                        error: error => {
+                          console.log(
+                            "WebRTC error... " + JSON.stringify(error)
+                          );
+                        }
+                      });
                       break;
                     case "leave":
-                      this.users[msg.user_id] = false;
                       break;
                     default:
                       break;
@@ -97,7 +123,7 @@ class JanusPluginSFU {
                   switch (jsep.type) {
                     case "offer":
                       console.log("create answer");
-                      streaming.createAnswer({
+                      this.streaming.createAnswer({
                         jsep: jsep,
                         media: {
                           audio: true,
@@ -116,7 +142,7 @@ class JanusPluginSFU {
                       break;
                     case "answer":
                       console.log("handle answer");
-                      streaming.handleRemoteJsep({
+                      this.streaming.handleRemoteJsep({
                         jsep: jsep,
                         success: () => {
                           console.log("success handle jsep");
@@ -135,38 +161,9 @@ class JanusPluginSFU {
                 }
               },
               webrtcState: webrtcup => {
-                console.log("on webrtc status " + userId + webrtcup);
-                console.log("on webrtc user my: " + (userId == this.myUserId));
+                console.log("on webrtc status " + this.roomId + webrtcup);
 
                 if (webrtcup) {
-                  this.users[userId] = true;
-                  let subscribe = {};
-                  if (userId == this.myUserId) {
-                    subscribe = {
-                      notifications: true,
-                      data: true
-                    };
-                  } else {
-                    subscribe = {
-                      media: userId
-                    };
-                  }
-                  streaming.send({
-                    message: {
-                      kind: "join",
-                      room_id: roomId,
-                      user_id: userId,
-                      subscribe: subscribe
-                    },
-                    success: jsep => {
-                      console.log("success join");
-                    },
-                    error: error => {
-                      console.log("WebRTC error... " + JSON.stringify(error));
-                    }
-                  });
-                } else {
-                  this.createSession(roomId, userId);
                 }
               },
               onlocalstream: stream => {
@@ -180,7 +177,6 @@ class JanusPluginSFU {
                 if (
                   tracks === null ||
                   tracks === undefined ||
-                  this.myUserId == userId ||
                   tracks.length === 0
                 )
                   return;
@@ -202,4 +198,4 @@ class JanusPluginSFU {
   }
 }
 
-export default JanusPluginSFU;
+export default JanusPluginAudioBridge;

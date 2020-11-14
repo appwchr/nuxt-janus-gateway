@@ -15,10 +15,11 @@
 <script>
 import Logo from "~/components/Logo.vue";
 import JanusPluginSFU from "~/components/janus_plugin_sfu";
-const server = "ws://192.168.1.210:8188";
+const server = "wss://janus-001.vobby.net:8989";
 const roomId = "test";
 const myId = Math.random().toString(32).substring(2);
-const token = "1605358995,janus,janus.plugin.sfu:f+F+JcX2ByYhTO34z8poODDgv4c=";
+const token =
+  "1605402604,janus,janus.plugin.sfu,janus.plugin.audiobridge:u4XnnMoUbLq8lY5m00jxvJZtPr4=";
 export default {
   components: {
     Logo,
