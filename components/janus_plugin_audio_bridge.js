@@ -13,6 +13,7 @@ class JanusPluginAudioBridge {
     this.streaming.send({
       message: {
         request: "create",
+        sampling_rate: 44100,
         room: roomId
       },
       success: jsep => {
