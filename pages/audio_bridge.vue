@@ -1,7 +1,39 @@
 <template>
   <div class="container">
-    <button @click="createRoom">Create</button>
-    <button @click="startSession">Start</button>
+    <div>
+      <button @click="createRoom">Create</button>
+      <button @click="startSession">Start</button>
+      <button @click="changeComic">Change Comic</button>
+      <button @click="changeMusic">Change Music</button>
+    </div>
+    <div>
+      <iframe
+        ref="comicFrame"
+        src="https://shonenjumpplus.com/episode/13933686331737374360/embed"
+        width="560"
+        height="400"
+        frameborder="0"
+        scrolling="no"
+        allowfullscreen="allowfullscreen"
+        style="max-width: 100%"
+      ></iframe>
+    </div>
+    <div>
+      <iframe
+        ref="musicFrame"
+        allow="autoplay *; encrypted-media *; fullscreen *"
+        frameborder="0"
+        height="450"
+        style="
+          width: 100%;
+          max-width: 660px;
+          overflow: hidden;
+          background: transparent;
+        "
+        sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
+        src="https://embed.music.apple.com/jp/playlist/%E3%83%8B%E3%83%A5%E3%83%BC-%E3%83%9F%E3%83%A5%E3%83%BC%E3%82%B8%E3%83%83%E3%82%AF-%E3%83%87%E3%82%A4%E3%83%AA%E3%83%BC/pl.2b0e6e332fdf4b7a91164da3162127b5"
+      ></iframe>
+    </div>
     <audio
       class="rounded centered"
       id="audio"
@@ -35,6 +67,14 @@ export default {
     },
     startSession() {
       plugin.joinRoom(roomId);
+    },
+    changeComic() {
+      this.$refs.comicFrame.src =
+        "https://shonenjumpplus.com/episode/13933686331737378690/embed";
+    },
+    changeMusic() {
+      this.$refs.musicFrame.src =
+        "https://embed.music.apple.com/jp/playlist/j-pop-now/pl.dc16cb58902342cba9711cbcd9bf2840";
     },
   },
 };

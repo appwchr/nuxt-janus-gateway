@@ -14,6 +14,7 @@ class JanusPluginAudioBridge {
       message: {
         request: "create",
         sampling_rate: 44100,
+        audio_level_average: 0,
         room: roomId
       },
       success: jsep => {
