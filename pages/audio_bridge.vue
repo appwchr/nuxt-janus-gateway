@@ -6,34 +6,6 @@
       <button @click="changeComic">Change Comic</button>
       <button @click="changeMusic">Change Music</button>
     </div>
-    <div>
-      <iframe
-        ref="comicFrame"
-        src="https://shonenjumpplus.com/episode/13933686331737374360/embed"
-        width="560"
-        height="400"
-        frameborder="0"
-        scrolling="no"
-        allowfullscreen="allowfullscreen"
-        style="max-width: 100%"
-      ></iframe>
-    </div>
-    <div>
-      <iframe
-        ref="musicFrame"
-        allow="autoplay *; encrypted-media *; fullscreen *"
-        frameborder="0"
-        height="450"
-        style="
-          width: 100%;
-          max-width: 660px;
-          overflow: hidden;
-          background: transparent;
-        "
-        sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
-        src="https://embed.music.apple.com/jp/playlist/%E3%83%8B%E3%83%A5%E3%83%BC-%E3%83%9F%E3%83%A5%E3%83%BC%E3%82%B8%E3%83%83%E3%82%AF-%E3%83%87%E3%82%A4%E3%83%AA%E3%83%BC/pl.2b0e6e332fdf4b7a91164da3162127b5"
-      ></iframe>
-    </div>
     <audio
       class="rounded centered"
       id="audio"
@@ -48,7 +20,8 @@
 <script>
 import Logo from "~/components/Logo.vue";
 import JanusPluginAudioBridge from "~/components/janus_plugin_audio_bridge";
-const server = "wss://janus-001.vobby.net:8989";
+//const server = "wss://janus-001.vobby.net:8989";
+const server = "ws://192.168.1.210:8188";
 const roomId = 1111;
 const myId = Math.random().toString(32).substring(2);
 const token =

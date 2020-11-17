@@ -13,7 +13,6 @@ class JanusPluginAudioBridge {
     this.streaming.send({
       message: {
         request: "create",
-        sampling_rate: 44100,
         audio_level_average: 0,
         room: roomId
       },
@@ -30,7 +29,8 @@ class JanusPluginAudioBridge {
       message: {
         request: "join",
         room: roomId,
-        display: this.myUserId
+        display: this.myUserId,
+        quality: 10
       },
       success: jsep => {
         console.log("success join");
