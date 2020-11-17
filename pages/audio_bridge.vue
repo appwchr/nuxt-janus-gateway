@@ -1,10 +1,20 @@
 <template>
   <div class="container">
-    <div>
-      <button @click="createRoom">Create</button>
-      <button @click="startSession">Start</button>
-      <button @click="changeComic">Change Comic</button>
-      <button @click="changeMusic">Change Music</button>
+    <div v-if="allowMicPermission">
+      <div v-if="connecting">接続中...</div>
+      <div v-if="connected">
+        <div>{{ myId }}</div>
+        <div>{{ mySessionId }}</div>
+        <div v-for="item in participants" :key="`participants_${item}`">
+          {{ item }}
+        </div>
+      </div>
+      <button v-if="!connecting && !connected" @click="createRoom">
+        Create And Join
+      </button>
+      <button v-if="!connecting && !connected" @click="joinRoom">Join</button>
+      <button v-if="connected" @click="toggleMute">ToggleMute</button>
+      <button v-if="connected" @click="leaveRoom">Leave</button>
     </div>
     <audio
       class="rounded centered"
@@ -20,26 +30,149 @@
 <script>
 import Logo from "~/components/Logo.vue";
 import JanusPluginAudioBridge from "~/components/janus_plugin_audio_bridge";
-//const server = "wss://janus-001.vobby.net:8989";
-const server = "ws://192.168.1.210:8188";
-const roomId = 1111;
-const myId = Math.random().toString(32).substring(2);
-const token =
-  "1605402604,janus,janus.plugin.sfu,janus.plugin.audiobridge:u4XnnMoUbLq8lY5m00jxvJZtPr4=";
-const plugin = new JanusPluginAudioBridge(myId, server, token);
+
 export default {
   components: {
     Logo,
   },
-  mounted() {
-    plugin.createSession();
+  data() {
+    return {
+      roomId: 1111,
+      myId: Math.random().toString(32).substring(2),
+      url: "",
+      token: "",
+      plugin: null,
+      participants: [],
+      allowMicPermission: false,
+      connected: false,
+      connecting: false,
+      muted: false,
+    };
+  },
+  async mounted() {
+    this.$nextTick(() => {
+      this.checkPermission();
+    });
   },
   methods: {
-    createRoom() {
-      plugin.createRoom(roomId);
+    async setupUserMedia() {
+      window.AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (navigator.mediaDevices === undefined) {
+        navigator.mediaDevices = {};
+      }
+      if (navigator.mediaDevices.getUserMedia === undefined) {
+        navigator.mediaDevices.getUserMedia = (constraints) => {
+          const getUserMedia =
+            navigator.getUserMedia ||
+            navigator.webkitGetUserMedia ||
+            navigator.mozGetUserMedia;
+
+          if (!getUserMedia) {
+            return Promise.reject(
+              new Error("getUserMedia is not implemented in this browser")
+            );
+          }
+
+          return new Promise(function (resolve, reject) {
+            getUserMedia.call(navigator, constraints, resolve, reject);
+          });
+        };
+      }
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: true,
+      });
     },
-    startSession() {
-      plugin.joinRoom(roomId);
+    async checkPermission() {
+      try {
+        await this.setupUserMedia();
+        this.allowMicPermission = true;
+      } catch (e) {
+        this.allowMicPermission = false;
+      }
+    },
+    async createSession() {
+      const res = await this.$axios.$post(
+        "https://webrtcbase-api-production-dq27y4dblq-an.a.run.app/api/v1/servers/select",
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer N2a2qPzcEWtj2S2oQv1BT2fvovyHSu2v",
+          },
+        }
+      );
+      const url = `wss://${res.host}:${res.port}`;
+      const token = res.token;
+      this.plugin = new JanusPluginAudioBridge(this.myId, url, token);
+      await this.plugin.createSession((state, msg) => {
+        console.log(msg);
+        switch (state) {
+          case "connected":
+            this.connecting = false;
+            this.connected = true;
+            break;
+          case "joined":
+            if (msg.id != null) {
+              this.mySessionId = msg.id;
+            }
+            if (msg.participants != null) {
+              this.participants = msg.participants;
+            }
+            break;
+          case "disconnected":
+            this.connecting = false;
+            this.mySessionId = null;
+            this.participants = [];
+            this.connected = false;
+            break;
+          case "left":
+            this.mySessionId = null;
+            this.participants = [];
+            this.connected = false;
+            break;
+          case "event":
+            if (msg.participants != null) {
+              for (let a of msg.participants) {
+                const find = this.participants.findIndex((b) => b.id == a.id);
+                console.log(find);
+                if (find >= 0) {
+                  this.participants.splice(find, 1);
+                }
+                this.participants.push(a);
+              }
+            }
+            if (msg.leaving != null) {
+              this.participants.forEach((a, index, object) => {
+                if ((a) => a.id == msg.leaving) {
+                  object.splice(index, 1);
+                  this.participants = this.participants;
+                }
+              });
+            }
+            break;
+          default:
+            break;
+        }
+      });
+    },
+    async createRoom() {
+      await this.createSession();
+      await this.plugin.createRoom(this.roomId);
+      this.connecting = true;
+      await this.plugin.joinRoom(this.roomId);
+    },
+    async joinRoom() {
+      await this.createSession();
+      this.connecting = true;
+      await this.plugin.joinRoom(this.roomId);
+    },
+    async leaveRoom() {
+      await this.plugin.leaveRoom();
+    },
+    async toggleMute() {
+      await this.plugin.configure(!this.muted, 100);
+      this.muted = !this.muted;
     },
     changeComic() {
       this.$refs.comicFrame.src =

@@ -15,7 +15,8 @@
 <script>
 import Logo from "~/components/Logo.vue";
 import JanusPluginSFU from "~/components/janus_plugin_sfu";
-const server = "wss://janus-001.vobby.net:8989";
+//const server = "wss://janus-001.vobby.net:8989";
+const server = "ws://192.168.1.210:8188";
 const roomId = "test";
 const myId = Math.random().toString(32).substring(2);
 const token =
